@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,29 @@ const CRM_OPTIONS = ['Да', 'Нет', 'Частично'];
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(n));
+
+const useCountUp = (target: number, duration = 1000, active = true) => {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number>();
+
+  useEffect(() => {
+    if (!active) return;
+    const start = performance.now();
+    const from = 0;
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(from + (target - from) * eased);
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration, active]);
+
+  return value;
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -193,17 +216,23 @@ const Index = () => {
                 <Metric
                   icon="Clock"
                   label="Часов теряется в месяц"
-                  value={`${fmt(calc.lostHours)} ч`}
+                  number={calc.lostHours}
+                  suffix=" ч"
+                  animate={step === 3}
                 />
                 <Metric
                   icon="TrendingDown"
                   label="Стоимость потерь"
-                  value={`${fmt(calc.lostCost)} ₽`}
+                  number={calc.lostCost}
+                  suffix=" ₽"
+                  animate={step === 3}
                 />
                 <Metric
                   icon="PiggyBank"
                   label="Потенциальная экономия"
-                  value={`${fmt(calc.savings)} ₽`}
+                  number={calc.savings}
+                  suffix=" ₽"
+                  animate={step === 3}
                   highlight
                 />
                 <Metric icon="Rocket" label="Срок окупаемости" value="2–4 мес." />
@@ -316,30 +345,41 @@ const Metric = ({
   icon,
   label,
   value,
+  number,
+  suffix = '',
+  animate = false,
   highlight,
 }: {
   icon: string;
   label: string;
-  value: string;
+  value?: string;
+  number?: number;
+  suffix?: string;
+  animate?: boolean;
   highlight?: boolean;
-}) => (
-  <div
-    className={`rounded-2xl border p-4 ${
-      highlight
-        ? 'border-primary/50 bg-primary/10'
-        : 'border-border bg-secondary/40'
-    }`}
-  >
-    <Icon
-      name={icon}
-      size={20}
-      className={highlight ? 'text-primary' : 'text-muted-foreground'}
-    />
-    <p className="mt-3 text-xs text-muted-foreground">{label}</p>
-    <p className={`mt-1 text-lg font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>
-      {value}
-    </p>
-  </div>
-);
+}) => {
+  const animated = useCountUp(number ?? 0, 1000, animate && number !== undefined);
+  const display = value ?? `${fmt(animated)}${suffix}`;
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        highlight
+          ? 'border-primary/50 bg-primary/10'
+          : 'border-border bg-secondary/40'
+      }`}
+    >
+      <Icon
+        name={icon}
+        size={20}
+        className={highlight ? 'text-primary' : 'text-muted-foreground'}
+      />
+      <p className="mt-3 text-xs text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-lg font-bold tabular-nums ${highlight ? 'text-primary' : 'text-foreground'}`}>
+        {display}
+      </p>
+    </div>
+  );
+};
 
 export default Index;
