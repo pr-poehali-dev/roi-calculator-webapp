@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "Создание заявки ROI",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Иван Тестов",
+        "phone": "+79991234567",
+        "email": "test@example.com",
+        "industry": "Продажи",
+        "employees": "10-50",
+        "salary": 80000,
+        "routineHours": 3.5,
+        "savings": 1500000
+      },
+      "expectedStatus": 200,
+      "expectedBody": {"success": true},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
